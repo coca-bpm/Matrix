@@ -32,9 +32,10 @@ uint8_t brightness = 1;
 int PulseSensorPurplePin = 0; // Pulse Sensor PURPLE WIRE connected to ANALOG PIN 0
 int LED13 = 13;               //  The on-board Arduion LED
 
-int maxBrightness = 15;
+int maxBrightness = 8;
 int Signal;          // holds the incoming raw data. Signal value can range from 0-1024
-int Threshold = 550; // Determine which Signal to "count as a beat", and which to ingore.
+int LowerThreshold = 265;
+int Threshold = 580; // Determine which Signal to "count as a beat", and which to ingore.
 const int Bound = 1024;
 
 void setup()
@@ -95,7 +96,7 @@ void loop()
   readPulseData();
   displaySignalOnLed();
   displayMatrix();
-  delay(10);
+  delay(15);
 }
 
 void readPulseData()
@@ -125,9 +126,11 @@ void displayMatrix()
   {
     uint8_t p = time - i * 8;
     
-    colors[i] = hsvToRgb(0, 100, 100);
+    colors[i] = hsvToRgb(0, 255, 255);
   }
 
-  brightness = constrain(Signal / Threshold, 0, 1) * maxBrightness;
+  float interpolation = (float)(Signal-LowerThreshold)/(Threshold-LowerThreshold);
+  
+  brightness = constrain(interpolation, 0, 1) * maxBrightness;
   ledStrip.write(colors, ledCount, brightness);
 }
