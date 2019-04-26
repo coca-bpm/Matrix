@@ -121,7 +121,7 @@ void displaySignalOnLed()
 void displayMatrix()
 {
   uint8_t time = millis() >> 4;
-
+  
   for (uint16_t i = 0; i < ledCount; i++)
   {
     uint8_t p = time - i * 8;
@@ -129,7 +129,6 @@ void displayMatrix()
     colors[i] = rgb_color(255, 0, 0);
     brightness[i] = constrain(Signal / Threshold, 0, 1) * maxBrightness;
   }
-
   
   ledStrip.write(colors, ledCount, brightness[0]);
 }
