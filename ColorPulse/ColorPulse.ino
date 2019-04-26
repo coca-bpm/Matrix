@@ -8,8 +8,8 @@
  * the FastGPIO library and uncomment the next two lines: */
 // #include <FastGPIO.h>
 // #define APA102_USE_FAST_GPIO
-
 #include <APA102.h>
+#include <Streaming.h>
 
 // Define which pins to use.
 const uint8_t dataPin = 11;
@@ -24,7 +24,6 @@ const uint16_t ledCount = 64;
 // Create a buffer for holding the colors (3 bytes per color).
 rgb_color colors[ledCount];
 
-
 //  Variables
 
 int PulseSensorPurplePin = 0; // Pulse Sensor PURPLE WIRE connected to ANALOG PIN 0
@@ -32,11 +31,98 @@ int LED13 = 13;               //  The on-board Arduion LED
 
 int maxBrightness = 15;
 int Signal;          // holds the incoming raw data. Signal value can range from 0-1024
-int Threshold = 380; // Determine which Signal to "count as a beat", and which to ingore.
+int Threshold = 340; // Determine which Signal to "count as a beat", and which to ingore.
+int MaxThreshold = 540;
 const int Bound = 800;
 
+bool heartArrayFilled[5][64]{
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 0, 1, 1, 1, 1, 0, 0,
+     0, 0, 1, 1, 1, 1, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 1, 1, 1, 1, 1, 1, 0,
+     0, 1, 1, 1, 1, 1, 1, 0,
+     0, 1, 1, 1, 1, 1, 1, 0,
+     0, 0, 1, 1, 1, 1, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 1, 1, 0, 0, 1, 1, 0,
+     1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1,
+     0, 1, 1, 1, 1, 1, 1, 0,
+     0, 0, 1, 1, 1, 1, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0}};
+
+bool heartArray[5][64]{
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 0, 1, 1, 1, 1, 0, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 1, 0, 1, 1, 0, 1, 0,
+     0, 1, 0, 0, 0, 0, 1, 0,
+     0, 1, 0, 0, 0, 0, 1, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 1, 1, 0, 0, 1, 1, 0,
+     1, 0, 0, 1, 1, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 1,
+     0, 1, 0, 0, 0, 0, 1, 0,
+     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 0, 0, 1, 1, 0, 0, 0}};
+
+int dataCalibrateInterval = 5;
+
 // Set the brightness to use (the maximum is 31).
-uint8_t brightness[ledCount];
+uint8_t brightness;
 
 void setup()
 {
@@ -91,14 +177,6 @@ rgb_color hsvToRgb(uint16_t h, uint8_t s, uint8_t v)
   return rgb_color(r, g, b);
 }
 
-void loop()
-{
-  readPulseData();
-  displaySignalOnLed();
-  displayMatrix();
-  delay(10);
-}
-
 void readPulseData()
 {
   Signal = analogRead(PulseSensorPurplePin); // Read the PulseSensor's value.
@@ -107,7 +185,7 @@ void readPulseData()
 
 void displaySignalOnLed()
 {
-  Serial.println(Signal); // Send the Signal value to Serial Plotter.
+  //  Serial.println(Signal); // Send the Signal value to Serial Plotter.
   if (Signal > Threshold)
   { // If the signal is above "550", then "turn-on" Arduino's on-Board LED.
     digitalWrite(LED13, HIGH);
@@ -118,17 +196,87 @@ void displaySignalOnLed()
   }
 }
 
+void sendColor(uint16_t power, uint8_t red, uint8_t green, uint8_t blue)
+{
+  // Choose the lowest possible 5-bit brightness that will work.
+  uint8_t brightness5Bit = 1;
+  while (brightness5Bit * 255 < power && brightness5Bit < 31)
+  {
+    brightness5Bit++;
+  }
+
+  // Set brightness8Bit to be power divided by brightness5Bit,
+  // rounded to the nearest whole number.
+  uint8_t brightness8Bit = (power + (brightness5Bit / 2)) / brightness5Bit;
+
+  // Send the white color to the LED strip.  At this point,
+  // brightness8Bit multiplied by brightness5Bit should be
+  // approximately equal to power.
+  ledStrip.sendColor((float)red * power / 31, (float)green * power / 31, (float)blue * power / 31, brightness5Bit);
+}
+
+void displayBackgroundMatrix()
+{
+  ledStrip.startFrame();
+
+  for (uint16_t i = 0; i < ledCount; i++)
+  {
+    sendColor(10, 255, 255, 255);
+  }
+  ledStrip.endFrame(ledCount);
+}
+
 void displayMatrix()
 {
   uint8_t time = millis() >> 4;
-  
-  for (uint16_t i = 0; i < ledCount; i++)
+
+  float percent = constrain((float)(Signal - Threshold) / (MaxThreshold - Threshold), 0, 1);
+  int power = constrain((float)(Signal - Threshold) / (MaxThreshold - Threshold), 0, 1) * maxBrightness;
+  Serial << "Signal: " << Signal << ", threshold: " << Threshold << ", percent:" << percent << ", power: " << power << endl;
+
+  if (power == 1)
   {
-    uint8_t p = time - i * 8;
-    
-    colors[i] = rgb_color(255, 0, 0);
-    brightness[i] = constrain(Signal / Threshold, 0, 1) * maxBrightness;
+    ledStrip.startFrame();
+    for (uint16_t i = 0; i < ledCount; i++)
+    {
+      sendColor(31, 255, 0, 0);
+    }
+    ledStrip.endFrame(ledCount);
+
+    delay(250);
   }
-  
-  ledStrip.write(colors, ledCount, brightness[0]);
+  else if (power == 0)
+  {
+    ledStrip.startFrame();
+    for (uint16_t i = 0; i < ledCount; i++)
+    {
+      sendColor(0, 255, 0, 0);
+    }
+    ledStrip.endFrame(ledCount);
+  }
+  else
+  {
+    ledStrip.startFrame();
+    for (uint16_t i = 0; i < ledCount; i++)
+    {
+      if (heartArrayFilled[(int)(percent * 4)][i])
+      {
+        sendColor(31, 255, 0, 0);
+      }
+      else
+      {
+        sendColor(0, 0, 0, 0);
+      }
+    }
+    ledStrip.endFrame(ledCount);
+  }
+}
+
+void loop()
+{
+  readPulseData();
+  displaySignalOnLed();
+  displayMatrix();
+  //  displayBackgroundMatrix();
+  delay(5);
 }
